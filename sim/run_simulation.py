@@ -3,21 +3,8 @@ from __future__ import annotations
 
 import argparse
 import json
-import sys
 from pathlib import Path
 from typing import Dict, Iterable, List
-
-# ---------------------------------------------------------------------------
-# Local package resolution helper
-# ---------------------------------------------------------------------------
-if __package__ in {None, ""}:
-    # When executed as ``python sim/run_simulation.py`` Python only adds the
-    # ``sim`` directory to ``sys.path``. Insert the repository root so that the
-    # ``core`` and ``scenarios`` packages are importable in that invocation
-    # style. Running via ``python -m sim.run_simulation`` remains unaffected.
-    REPO_ROOT = Path(__file__).resolve().parents[1]
-    if str(REPO_ROOT) not in sys.path:
-        sys.path.insert(0, str(REPO_ROOT))
 
 import matplotlib.pyplot as plt
 import numpy as np

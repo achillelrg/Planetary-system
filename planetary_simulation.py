@@ -27,14 +27,14 @@ STAR_RADIUS = 0.35  # Visual radius of the central star
 PLANET_MASS_RATIO = 9.0  # Mass of mother planet divided by the moon mass
 PLANET_RADIUS_RATIO = 3.0  # Radius of mother planet divided by the moon radius
 PLANET_ORBIT_RADIUS = 10.0  # Distance between star and mother planet
-MOON_ORBIT_RADIUS = 3.0  # Semi-major axis of the moon ellipse around the mother planet
+MOON_ORBIT_RADIUS = 3.0  # Base distance between mother planet and moon
 
-ROSETTE_LOBES = 5  # Number of petals traced by the precessing moon orbit
-ROSETTE_ECCENTRICITY = 0.45  # Orbital eccentricity of the moon ellipse (0 < e < 1)
+ROSETTE_LOBES = 5  # Number of lobes in the rosette orbit
+ROSETTE_ECCENTRICITY = 0.25  # Radial modulation amplitude for the rosette
+ROSETTE_ANGULAR_MODULATION = 0.35  # Angular modulation amplitude for the rosette
 
 MOTHER_ORBIT_PERIOD = 20.0  # Period of mother planet around the star
-MOON_ORBIT_PERIOD = 4.0  # Orbital period of the moon around the mother planet
-ECLIPSE_PERIOD = 5  # Number of moon orbits between consecutive eclipses
+ECLIPSE_PERIOD = 5  # Number of mother orbits between consecutive eclipses
 MOON_ORBIT_SPEED_FACTOR = 1.0  # Scaling applied to the moon angular speed
 
 SHOW_TRAILS = True  # Toggle orbital trails
@@ -53,15 +53,16 @@ BACKGROUND_COLOR = "#060606"
 AXIS_COLOR = "#444444"
 TEXT_COLOR = "#f0f0f0"
 
-ECLIPSE_ALIGNMENT_TOLERANCE = 0.995  # Cosine of angle between star-moon and star-mother
-ECLIPSE_ORBIT_TOLERANCE = 0.06  # Allowed fraction of a moon orbit around the expected eclipse
+ECLIPSE_PHASE_THRESHOLD = 0.08  # Phase tolerance around the ideal alignment
 ECLIPSE_TEXT_DURATION = 200  # Number of frames for which the eclipse label stays visible
 
 # Derived constants
 MOTHER_ANGULAR_SPEED = 2.0 * math.pi / MOTHER_ORBIT_PERIOD
-MOON_ANGULAR_SPEED = 2.0 * math.pi / MOON_ORBIT_PERIOD * MOON_ORBIT_SPEED_FACTOR
-# Precession factor rotates the ellipse so that a rosette with ``ROSETTE_LOBES`` petals forms.
-MOON_PRECESSION_FACTOR = 1.0 / max(1, ROSETTE_LOBES)
+# Moon angular speed chosen to ensure alignment every `ECLIPSE_PERIOD` orbits
+MOON_ANGULAR_SPEED = (
+    (math.pi + 2.0 * math.pi * ROSETTE_LOBES)
+    / (ECLIPSE_PERIOD * MOTHER_ORBIT_PERIOD)
+) * MOON_ORBIT_SPEED_FACTOR
 
 # Ratio between radii converted to actual drawing sizes
 MOTHER_RADIUS = 0.6  # Base radius for drawing the mother planet
@@ -99,20 +100,17 @@ def mother_position(sim_time: float) -> Tuple[float, float]:
 def _moon_relative(sim_time: float) -> Tuple[float, float]:
     """Compute the moon position relative to the mother planet.
 
-    The moon follows an elliptical orbit whose periapsis precesses over time,
-    forming the multi-petaled rosette pattern requested for the simulation.
+    The motion combines a mean circular orbit with radial and angular
+    modulations to produce a rosette-like trajectory, while ensuring that the
+    moon aligns with the star and mother planet every ``ECLIPSE_PERIOD``
+    revolutions of the mother planet.
     """
 
-    anomaly = MOON_ANGULAR_SPEED * SPEED_MULTIPLIER * sim_time
-    precession = anomaly * MOON_PRECESSION_FACTOR
-    inertial_angle = anomaly + precession
-
-    denominator = 1.0 + ROSETTE_ECCENTRICITY * math.cos(anomaly)
-    denominator = max(denominator, 1e-6)
-    radius = MOON_ORBIT_RADIUS * (1.0 - ROSETTE_ECCENTRICITY ** 2) / denominator
-
-    rel_x = radius * math.cos(inertial_angle)
-    rel_y = radius * math.sin(inertial_angle)
+    theta_base = MOON_ANGULAR_SPEED * SPEED_MULTIPLIER * sim_time
+    radial_component = MOON_ORBIT_RADIUS * (1.0 + ROSETTE_ECCENTRICITY * math.cos(ROSETTE_LOBES * theta_base))
+    angular_component = theta_base + ROSETTE_ANGULAR_MODULATION * math.sin(ROSETTE_LOBES * theta_base)
+    rel_x = radial_component * math.cos(angular_component)
+    rel_y = radial_component * math.sin(angular_component)
     return rel_x, rel_y
 
 
@@ -127,17 +125,19 @@ def moon_position(sim_time: float) -> Tuple[float, float]:
 def is_eclipse(sim_time: float) -> bool:
     """Determine whether the system is currently in an eclipse configuration.
 
-    The moon is considered eclipsing when it lies between the star and the
-    mother planet *and* the current moon orbit count is near a multiple of
-    ``ECLIPSE_PERIOD``. This enforces the user requirement that eclipses only
-    occur every fixed number of moon revolutions.
+    An eclipse is considered to occur when the moon is aligned between the star
+    and the mother planet. The detection checks that the moon is closer to the
+    star than the mother planet and that its orbital phase is within a small
+    tolerance of the expected alignment phase.
     """
 
-    anomaly = MOON_ANGULAR_SPEED * SPEED_MULTIPLIER * sim_time
-    moon_orbits = anomaly / (2.0 * math.pi)
-    orbit_phase = moon_orbits % ECLIPSE_PERIOD
-    distance_to_multiple = min(orbit_phase, ECLIPSE_PERIOD - orbit_phase)
-    if distance_to_multiple > ECLIPSE_ORBIT_TOLERANCE:
+    theta_base = MOON_ANGULAR_SPEED * SPEED_MULTIPLIER * sim_time
+    # Compute angular difference from the ideal alignment phase (pi).
+    phase = (theta_base - math.pi) % (2.0 * math.pi)
+    if phase > math.pi:
+        phase -= 2.0 * math.pi
+
+    if abs(phase) > ECLIPSE_PHASE_THRESHOLD:
         return False
 
     mother = np.array(mother_position(sim_time))
@@ -150,7 +150,7 @@ def is_eclipse(sim_time: float) -> bool:
         return False
 
     alignment = np.dot(moon, mother) / (star_to_moon * star_to_mother + 1e-9)
-    return alignment > ECLIPSE_ALIGNMENT_TOLERANCE
+    return alignment > 0.995  # Ensure both vectors point almost in the same direction
 
 
 def _prepare_static_elements(ax: plt.Axes) -> None:
@@ -184,7 +184,7 @@ def _prepare_static_elements(ax: plt.Axes) -> None:
 def _precompute_rosette_path(samples: int = 2000) -> Tuple[np.ndarray, np.ndarray]:
     """Return coordinates of the full rosette trajectory for visualization."""
 
-    times = np.linspace(0.0, ECLIPSE_PERIOD * MOON_ORBIT_PERIOD, samples)
+    times = np.linspace(0.0, ECLIPSE_PERIOD * MOTHER_ORBIT_PERIOD, samples)
     mother_points = np.array([mother_position(t) for t in times])
     rel_points = np.array([_moon_relative(t) for t in times])
     path = mother_points + rel_points
@@ -257,15 +257,8 @@ def main() -> None:
 
         total_time = frame * TIME_STEP * SPEED_MULTIPLIER
         elapsed_orbits = total_time / MOTHER_ORBIT_PERIOD
-        moon_orbit_count = total_time / MOON_ORBIT_PERIOD
         time_text.set_text(
-            "\n".join(
-                [
-                    f"Temps simulé : {total_time:6.2f} unités",
-                    f"Orbites mère : {elapsed_orbits:5.2f}",
-                    f"Orbites lune : {moon_orbit_count:5.2f}",
-                ]
-            )
+            f"Temps simulé : {total_time:6.2f} unités\nOrbites mère : {elapsed_orbits:5.2f}"
         )
 
         if is_eclipse(sim_time):

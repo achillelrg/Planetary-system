@@ -1,5 +1,4 @@
 """Planetary system simulation with rosette moon orbit and eclipse events.
-
 This module visualizes a stylized planetary system composed of a central red dwarf,
 a mother planet, and a moon following a rosette-like trajectory. The animation is
 implemented with Matplotlib and is fully parameterized so that orbital dynamics
@@ -79,7 +78,6 @@ class OrbitalState:
 
 def mother_position(sim_time: float) -> Tuple[float, float]:
     """Return the mother planet position in Cartesian coordinates.
-
     Parameters
     ----------
     sim_time:

@@ -1,13 +1,28 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { CONFIG } from './config.js';
 
 // --- Configuration State ---
-// Initialize config with default values from CONFIG
-const config = {};
-for (const key in CONFIG) {
-    config[key] = CONFIG[key].default;
-}
+const config = {
+    // Simulation
+    speed: 1.0,
+
+    // Star
+    starRadius: 0.4,
+    starBrightness: 3.0,
+
+    // Planet
+    planetRadius: 0.15,
+    planetA: 2.0, // Semi-major axis
+    planetB: 1.5, // Semi-minor axis
+    planetPeriod: 10.0,
+
+    // Moon
+    moonRadius: 0.05,
+    moonDistBase: 0.9,
+    moonDistAmp: 0.9,
+    moonB: 0.3, // Tangential amplitude
+    moonRatio: 5, // Orbits per planet orbit
+};
 
 // --- Globals ---
 let scene, camera, renderer, controls;
@@ -49,13 +64,7 @@ async function init() {
     scene.add(sunLight);
 
     // 6. Load Assets & Create Objects
-    try {
-        await createObjects();
-    } catch (e) {
-        console.error("Error loading assets:", e);
-        document.getElementById('loading').textContent = "Error loading assets. Check console.";
-        return;
-    }
+    await createObjects();
 
     // 7. UI Setup
     setupUI();
@@ -200,34 +209,35 @@ function calculatePositions(t) {
 
 // --- UI Handling ---
 function setupUI() {
-    for (const id in CONFIG) {
+    const inputs = [
+        'simSpeed', 'starRadius', 'starBrightness',
+        'planetRadius', 'planetA', 'planetB', 'planetPeriod',
+        'moonRadius', 'moonDistBase', 'moonDistAmp', 'moonB', 'moonRatio'
+    ];
+
+    inputs.forEach(id => {
         const el = document.getElementById(id);
         const valDisplay = document.getElementById('val-' + id);
-        const conf = CONFIG[id];
 
-        if (el) {
-            // Set attributes from CONFIG
-            el.min = conf.min;
-            el.max = conf.max;
-            el.step = conf.step;
+        // Init value from config
+        if (config[id] !== undefined) {
             el.value = config[id];
-
-            if (valDisplay) valDisplay.textContent = config[id];
-
-            // Listener
-            el.addEventListener('input', (e) => {
-                const val = parseFloat(e.target.value);
-                config[id] = val;
-                if (valDisplay) valDisplay.textContent = val;
-
-                // Immediate updates for static props
-                if (id === 'starRadius') starMesh.scale.setScalar(val);
-                if (id === 'planetRadius') planetMesh.scale.setScalar(val);
-                if (id === 'moonRadius') moonMesh.scale.setScalar(val);
-                if (id === 'starBrightness') sunLight.intensity = val;
-            });
+            valDisplay.textContent = config[id];
         }
-    }
+
+        // Listener
+        el.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            config[id] = val;
+            valDisplay.textContent = val;
+
+            // Immediate updates for static props
+            if (id === 'starRadius') starMesh.scale.setScalar(val);
+            if (id === 'planetRadius') planetMesh.scale.setScalar(val);
+            if (id === 'moonRadius') moonMesh.scale.setScalar(val);
+            if (id === 'starBrightness') sunLight.intensity = val;
+        });
+    });
 
     // Initial scale set
     starMesh.scale.setScalar(config.starRadius);
@@ -241,7 +251,7 @@ function animate() {
 
     // Update Time
     // dt = 0.01 (base) * speed
-    time += 0.01 * config.simSpeed;
+    time += 0.01 * config.speed;
 
     // Calculate Positions
     const positions = calculatePositions(time);
@@ -252,11 +262,11 @@ function animate() {
 
     // Rotations
     planetMesh.lookAt(starMesh.position);
-    moonMesh.rotation.y += 0.01 * config.simSpeed;
+    moonMesh.rotation.y += 0.01 * config.speed;
 
     // Trails
     // Only update trails if speed > 0 to avoid stacking points
-    if (config.simSpeed > 0) {
+    if (config.speed > 0) {
         updateTrail(planetTrail, planetMesh.position);
         updateTrail(moonTrail, moonMesh.position);
     }

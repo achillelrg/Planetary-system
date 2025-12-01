@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>3D Red Dwarf Planetary System</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=2">
     <style>
         body {
             margin: 0;
@@ -69,15 +69,15 @@
 
         <div class="control-group">
             <h3>Simulation</h3>
-            <label>Speed: <input type="range" id="simSpeed" min="0" max="5" step="0.1" value="1"><span
-                    id="val-simSpeed">1</span></label>
+            <label>Speed: <input type="range" id="simSpeed" min="0" max="5" step="0.01" value="0.1"><span
+                    id="val-simSpeed">0.1</span></label>
         </div>
 
         <div class="control-group">
             <h3>Star</h3>
-            <label>Radius: <input type="range" id="starRadius" min="0.1" max="2.0" step="0.1" value="0.4"><span
-                    id="val-starRadius">0.4</span></label>
-            <label>Brightness: <input type="range" id="starBrightness" min="0.1" max="5.0" step="0.1" value="3.0"><span
+            <label>Radius: <input type="range" id="starRadius" min="0.1" max="2.0" step="0.1" value="0.2"><span
+                    id="val-starRadius">0.2</span></label>
+            <label>Brightness: <input type="range" id="starBrightness" min="0.1" max="50.0" step="0.1" value="3.0"><span
                     id="val-starBrightness">3.0</span></label>
         </div>
 
@@ -85,31 +85,31 @@
             <h3>Planet</h3>
             <label>Radius: <input type="range" id="planetRadius" min="0.05" max="0.5" step="0.01" value="0.15"><span
                     id="val-planetRadius">0.15</span></label>
-            <label>Orbit A (Major): <input type="range" id="planetA" min="1.0" max="5.0" step="0.1" value="2.0"><span
-                    id="val-planetA">2.0</span></label>
-            <label>Orbit B (Minor): <input type="range" id="planetB" min="1.0" max="5.0" step="0.1" value="1.5"><span
-                    id="val-planetB">1.5</span></label>
-            <label>Period: <input type="range" id="planetPeriod" min="1" max="20" step="0.5" value="10.0"><span
+            <label>Orbit A (Major): <input type="range" id="planetA" min="1.0" max="10.0" step="0.1" value="3.3"><span
+                    id="val-planetA">3.3</span></label>
+            <label>Orbit B (Minor): <input type="range" id="planetB" min="1.0" max="10.0" step="0.1" value="3.3"><span
+                    id="val-planetB">3.3</span></label>
+            <label>Period: <input type="range" id="planetPeriod" min="1" max="50" step="0.5" value="10.0"><span
                     id="val-planetPeriod">10.0</span></label>
         </div>
 
         <div class="control-group">
             <h3>Moon</h3>
-            <label>Radius: <input type="range" id="moonRadius" min="0.01" max="0.2" step="0.01" value="0.05"><span
-                    id="val-moonRadius">0.05</span></label>
-            <label>Dist Base: <input type="range" id="moonDistBase" min="0.2" max="1.5" step="0.05" value="0.9"><span
-                    id="val-moonDistBase">0.9</span></label>
-            <label>Dist Amp: <input type="range" id="moonDistAmp" min="0.0" max="1.5" step="0.05" value="0.9"><span
-                    id="val-moonDistAmp">0.9</span></label>
-            <label>Orbit B (Tang): <input type="range" id="moonB" min="0.0" max="1.0" step="0.05" value="0.3"><span
-                    id="val-moonB">0.3</span></label>
-            <label>Orbits/Planet: <input type="range" id="moonRatio" min="1" max="20" step="1" value="5"><span
+            <label>Radius: <input type="range" id="moonRadius" min="0.01" max="0.2" step="0.01" value="0.08"><span
+                    id="val-moonRadius">0.08</span></label>
+            <label>Dist Base: <input type="range" id="moonDistBase" min="0.2" max="3.0" step="0.05" value="0.95"><span
+                    id="val-moonDistBase">0.95</span></label>
+            <label>Dist Amp: <input type="range" id="moonDistAmp" min="0.0" max="3.0" step="0.05" value="1.5"><span
+                    id="val-moonDistAmp">1.5</span></label>
+            <label>Orbit B (Tang): <input type="range" id="moonB" min="0.0" max="2.0" step="0.05" value="1.0"><span
+                    id="val-moonB">1.0</span></label>
+            <label>Orbits/Planet: <input type="range" id="moonRatio" min="1" max="50" step="1" value="5"><span
                     id="val-moonRatio">5</span></label>
         </div>
     </div>
 
     <div id="loading">Loading Assets...</div>
-    <script type="module" src="app.js"></script>
+    <script type="module" src="app.js?v=2"></script>
 </body>
 
 </html>
